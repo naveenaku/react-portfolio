@@ -1,49 +1,43 @@
 pipeline {
-    agent any
+  agent any
 
-    environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')   // Jenkins credential ID
-        IMAGE_NAME = "naveenaku/react-portfolio"
-        IMAGE_TAG = "latest"
+  environment {
+    IMAGE_NAME = "naveenakula029/react-portfolio"
+    IMAGE_TAG  = "latest"
+  }
+
+  stages {
+    stage('Checkout Code') {
+      steps {
+        // public repo: HTTPS is simplest
+        git branch: 'master', url: 'https://github.com/naveenaku/react-portfolio.git'
+      }
     }
 
-    stages {
-
-        stage('Checkout Code') {
-            steps {
-                git 'https://github.com/naveenaku/react-portfolio.git'
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                sh """
-                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                """
-            }
-        }
-
-        stage('Login to Docker Hub') {
-            steps {
-                sh """
-                    echo "${DOCKERHUB_CREDENTIALS_PSW}" | docker login -u "${DOCKERHUB_CREDENTIALS_USR}" --password-stdin
-                """
-            }
-        }
-
-        stage('Push Image to Docker Hub') {
-            steps {
-                sh """
-                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                """
-            }
-        }
+    stage('Build Docker Image') {
+      steps {
+        sh '''
+          echo "Building Docker image ${IMAGE_NAME}:${IMAGE_TAG}"
+          docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+        '''
+      }
     }
 
-    post {
-        always {
-            sh "docker logout"
+    stage('Login & Push to Docker Hub') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKERHUB_USR', passwordVariable: 'DOCKERHUB_PSW')]) {
+          sh '''
+            echo "$DOCKERHUB_PSW" | docker login -u "$DOCKERHUB_USR" --password-stdin
+            docker push ${IMAGE_NAME}:${IMAGE_TAG}
+            docker logout || true
+          '''
         }
+      }
     }
+  }
+
+  post {
+    success { echo "Pipeline succeeded" }
+    failure { echo "Pipeline failed — check console" }
+  }
 }
-
