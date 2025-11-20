@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')   // Jenkins credential ID
-        IMAGE_NAME = "naveenakula029/react-portfolio"
+        IMAGE_NAME = "naveenaku/react-portfolio"
         IMAGE_TAG = "latest"
     }
 
